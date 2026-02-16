@@ -90,7 +90,7 @@ Rules:
 
 async def summarize_meeting(
     transcript: str,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.2",
     api_key: str = "",
 ) -> MeetingSummary:
     """

@@ -38,7 +38,11 @@ app.add_middleware(
 # ── Health ───────────────────────────────────────────────────
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "wm-genai-models-governance"}
+    return {
+        "status": "ok",
+        "service": "wm-genai-models-governance",
+        "llm_available": bool(_get_api_key()),
+    }
 
 
 # ── Governance API ───────────────────────────────────────────
@@ -115,10 +119,45 @@ async def list_findings():
 # ── Helpers ───────────────────────────────────────────────────
 
 import os
+import sys
+from pathlib import Path
+
+# Ensure project root is on Python path for local_config imports
+_project_root = str(Path(__file__).resolve().parents[2])
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 
 def _get_api_key() -> str:
-    return os.environ.get("OPENAI_API_KEY", "")
+    """Get API key — checks env, local_config, .env, .api_key."""
+    # 1. Environment variable
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if key:
+        return key
+
+    # 2. local_config.py (importable Python module)
+    try:
+        from governance.app.local_config import OPENAI_API_KEY as local_key
+        if local_key:
+            return local_key
+    except (ImportError, Exception):
+        pass
+
+    # 3. File-based fallbacks
+    for base in [Path(__file__).resolve().parents[2], Path.cwd()]:
+        for fname in [".api_key", ".env"]:
+            fpath = base / fname
+            try:
+                content = fpath.read_text().strip()
+                if fname == ".api_key":
+                    return content
+                for line in content.split("\n"):
+                    if line.startswith("OPENAI_API_KEY="):
+                        return line.split("=", 1)[1].strip().strip("'\"")
+            except Exception:
+                pass
+
+    return ""
 
 
 async def _llm_call(system: str, user: str, response_format=None):
@@ -131,7 +170,7 @@ async def _llm_call(system: str, user: str, response_format=None):
         client = AsyncOpenAI(api_key=api_key)
         if response_format:
             resp = await client.beta.chat.completions.parse(
-                model="gpt-4o",
+                model="gpt-5.2",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                 response_format=response_format,
                 temperature=0,
@@ -139,10 +178,10 @@ async def _llm_call(system: str, user: str, response_format=None):
             return resp.choices[0].message.parsed
         else:
             resp = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5.2",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                 temperature=0,
-                max_tokens=2048,
+                max_completion_tokens=2048,
             )
             return {"text": resp.choices[0].message.content}
     except Exception as e:
@@ -171,7 +210,7 @@ async def demo_document_extract(body: dict):
             return {
                 "model": "WM Document Intelligence v1.0.0",
                 "mode": "llm_extraction",
-                "powered_by": "GPT-4o",
+                "powered_by": "GPT-5.2",
                 "extraction": llm_result,
             }
 

@@ -106,7 +106,7 @@ Rules:
 async def check_compliance(
     communication_text: str,
     client_context: ClientContext | None = None,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.2",
     api_key: str = "",
 ) -> ComplianceReport:
     """Screen a client communication for compliance violations."""

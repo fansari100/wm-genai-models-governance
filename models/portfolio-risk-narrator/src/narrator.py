@@ -77,7 +77,7 @@ Rules:
 
 async def generate_risk_narrative(
     portfolio: PortfolioData,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.2",
     api_key: str = "",
 ) -> RiskNarrative:
     """Generate risk commentary from portfolio data."""

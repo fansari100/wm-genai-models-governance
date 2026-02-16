@@ -81,7 +81,7 @@ class GovernedModel(BaseModel):
     status: ModelStatus
 
     # Architecture
-    base_model: str  # e.g., "gpt-4o", "claude-sonnet-4"
+    base_model: str  # e.g., "gpt-5.2", "claude-sonnet-4"
     uses_rag: bool = False
     uses_structured_output: bool = True
     client_facing: bool = False
@@ -123,7 +123,7 @@ MODEL_REGISTRY: list[GovernedModel] = [
         model_type="extraction",
         risk_rating=RiskRating.HIGH,
         status=ModelStatus.CERTIFIED,
-        base_model="gpt-4o",
+        base_model="gpt-5.2",
         uses_rag=True,
         handles_pii=False,
         data_classification="confidential",
@@ -160,7 +160,7 @@ MODEL_REGISTRY: list[GovernedModel] = [
         model_type="summarization",
         risk_rating=RiskRating.HIGH,
         status=ModelStatus.MONITORING,
-        base_model="gpt-4o",
+        base_model="gpt-5.2",
         client_facing=True,
         handles_pii=True,
         data_classification="pii",
@@ -193,7 +193,7 @@ MODEL_REGISTRY: list[GovernedModel] = [
         model_type="generation",
         risk_rating=RiskRating.MEDIUM,
         status=ModelStatus.CERTIFIED,
-        base_model="gpt-4o",
+        base_model="gpt-5.2",
         client_facing=True,
         handles_pii=False,
         data_classification="confidential",
@@ -226,7 +226,7 @@ MODEL_REGISTRY: list[GovernedModel] = [
         model_type="analysis",
         risk_rating=RiskRating.MEDIUM,
         status=ModelStatus.TESTING,
-        base_model="gpt-4o",
+        base_model="gpt-5.2",
         uses_rag=True,
         handles_pii=False,
         data_classification="internal",
@@ -253,7 +253,7 @@ MODEL_REGISTRY: list[GovernedModel] = [
         model_type="classification",
         risk_rating=RiskRating.HIGH,
         status=ModelStatus.CERTIFIED,
-        base_model="gpt-4o",
+        base_model="gpt-5.2",
         client_facing=False,
         handles_pii=True,
         data_classification="confidential",

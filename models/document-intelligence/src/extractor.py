@@ -134,7 +134,7 @@ Rules:
 async def extract_document(
     document_text: str,
     document_type: str = "auto",
-    model: str = "gpt-4o",
+    model: str = "gpt-5.2",
     api_key: str = "",
 ) -> DocumentExtraction:
     """

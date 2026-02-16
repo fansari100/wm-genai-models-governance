@@ -92,7 +92,7 @@ Rules:
 async def analyze_regulatory_change(
     document_text: str,
     regulator: str = "auto",
-    model: str = "gpt-4o",
+    model: str = "gpt-5.2",
     api_key: str = "",
 ) -> RegulatoryImpact:
     """Analyze a regulatory document for WM impact."""
