@@ -1,0 +1,9 @@
+/** @type {import('next').NextConfig} */
+module.exports = {
+  output: "standalone",
+  poweredByHeader: false,
+  reactStrictMode: true,
+  async rewrites() {
+    return [{ source: "/api/:path*", destination: "http://localhost:8000/api/:path*" }];
+  },
+};
