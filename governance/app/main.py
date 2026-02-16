@@ -161,7 +161,7 @@ def _get_api_key() -> str:
 
 
 async def _llm_call(system: str, user: str, response_format=None):
-    """Call GPT-4o. Returns parsed object or dict."""
+    """Call GPT-5.2. Returns parsed object or dict."""
     api_key = _get_api_key()
     if not api_key:
         return None
