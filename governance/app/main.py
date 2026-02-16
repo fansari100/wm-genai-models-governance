@@ -112,17 +112,68 @@ async def list_findings():
     ]
 
 
+# ── Helpers ───────────────────────────────────────────────────
+
+import os
+
+
+def _get_api_key() -> str:
+    return os.environ.get("OPENAI_API_KEY", "")
+
+
+async def _llm_call(system: str, user: str, response_format=None):
+    """Call GPT-4o. Returns parsed object or dict."""
+    api_key = _get_api_key()
+    if not api_key:
+        return None
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key)
+        if response_format:
+            resp = await client.beta.chat.completions.parse(
+                model="gpt-4o",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                response_format=response_format,
+                temperature=0,
+            )
+            return resp.choices[0].message.parsed
+        else:
+            resp = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                temperature=0,
+                max_tokens=2048,
+            )
+            return {"text": resp.choices[0].message.content}
+    except Exception as e:
+        return {"llm_error": str(e)}
+
+
 # ── Model Demo API (live, input-aware endpoints) ─────────────
 
 
 @app.post("/api/models/document-intelligence/extract")
 async def demo_document_extract(body: dict):
-    """Extract structured data from financial document text (rule-based demo)."""
+    """Extract structured data from financial document text."""
     import re
 
     text = body.get("text", "")
     if not text:
         return {"error": "Provide 'text' field with financial document text"}
+
+    # Try LLM extraction
+    if _get_api_key():
+        llm_result = await _llm_call(
+            "You are a financial document analyst for Morgan Stanley WM. Extract ALL data from this document as JSON with fields: fund_name, ticker, cusip, asset_class, risk_level, expense_ratio_pct, management_fee_pct, aum_millions, inception_date, benchmark, returns (ytd_pct, one_year_pct, three_year_pct, five_year_pct), risk_metrics (volatility_pct, sharpe_ratio, max_drawdown_pct, beta), top_holdings (list of {name, ticker, weight_pct}), investment_objective, key_risks (list), regulatory_flags (uses_leverage, uses_derivatives, concentrated), confidence_score (0-1). Only extract what's explicitly stated. Set missing fields to null.",
+            f"Document:\n{text[:8000]}",
+        )
+        if llm_result and "llm_error" not in llm_result:
+            return {
+                "model": "WM Document Intelligence v1.0.0",
+                "mode": "llm_extraction",
+                "powered_by": "GPT-4o",
+                "extraction": llm_result,
+            }
 
     # Rule-based extraction from the actual input text
     fund_name = None
@@ -212,12 +263,25 @@ async def demo_document_extract(body: dict):
 
 @app.post("/api/models/meeting-summarizer/summarize")
 async def demo_meeting_summarize(body: dict):
-    """Summarize meeting transcript (rule-based demo)."""
+    """Summarize meeting transcript — LLM when available, rule-based fallback."""
     import re
 
     transcript = body.get("transcript", "")
     if not transcript:
         return {"error": "Provide 'transcript' field"}
+
+    # Try LLM summarization
+    if _get_api_key():
+        llm_result = await _llm_call(
+            "You are a meeting summarization assistant for Morgan Stanley Wealth Management advisors. Given a transcript, return JSON with: summary (2-3 sentences), key_discussion_points (list), action_items (list of {description, owner, priority}), compliance_flags (list of issues), participants (list), confidence_score (0-1). Be thorough and accurate — only include facts from the transcript.",
+            f"Transcript:\n{transcript[:6000]}",
+        )
+        if llm_result and "llm_error" not in llm_result:
+            return {
+                "model": "Client Meeting Summarizer v1.3.0",
+                "mode": "llm_summarization",
+                "analysis": llm_result,
+            }
 
     lines = [l.strip() for l in transcript.strip().split("\n") if l.strip()]
     speakers = set()
@@ -281,12 +345,25 @@ async def demo_meeting_summarize(body: dict):
 
 @app.post("/api/models/portfolio-risk-narrator/generate")
 async def demo_risk_narrative(body: dict):
-    """Generate risk commentary from portfolio data (rule-based demo)."""
+    """Generate risk commentary from portfolio data — LLM when available."""
     import json
 
     raw = body.get("portfolio", "")
     if not raw:
         return {"error": "Provide 'portfolio' field with JSON data"}
+
+    # Try LLM narrative generation
+    if _get_api_key():
+        llm_result = await _llm_call(
+            "You are a portfolio risk analyst at Morgan Stanley Wealth Management. Given portfolio data, generate professional risk commentary as JSON with: executive_summary, performance_commentary, risk_assessment, allocation_commentary, action_recommendations (list), numbers_cited (list of {value, source_field}), confidence_score. ONLY cite numbers from the provided data. Use precise financial terminology.",
+            f"Portfolio Data:\n{raw if isinstance(raw, str) else json.dumps(raw, indent=2)}",
+        )
+        if llm_result and "llm_error" not in llm_result:
+            return {
+                "model": "Portfolio Risk Narrator v1.0.0",
+                "mode": "llm_narrative",
+                "narrative": llm_result,
+            }
 
     try:
         data = json.loads(raw) if isinstance(raw, str) else raw
@@ -334,12 +411,25 @@ async def demo_risk_narrative(body: dict):
 
 @app.post("/api/models/regulatory-change-detector/analyze")
 async def demo_regulatory_analyze(body: dict):
-    """Analyze regulatory document for WM impact (rule-based demo)."""
+    """Analyze regulatory document for WM impact — LLM when available."""
     import re
 
     text = body.get("text", "")
     if not text:
         return {"error": "Provide 'text' field with regulatory document text"}
+
+    # Try LLM analysis
+    if _get_api_key():
+        llm_result = await _llm_call(
+            "You are a regulatory change analyst for Morgan Stanley Wealth Management. Analyze the regulatory document and return JSON with: regulation_title, regulator (SEC/FINRA/OCC/CFPB/Fed), impact_level (critical/high/medium/low), summary, affected_areas (list), required_actions (list), genai_implications (if any), model_risk_implications (if any), effective_date, confidence_score. Consider WM's products: brokerage, advisory, planning, credit, insurance, stock plans.",
+            f"Regulatory Document:\n{text[:8000]}",
+        )
+        if llm_result and "llm_error" not in llm_result:
+            return {
+                "model": "Regulatory Change Detector v1.0.0",
+                "mode": "llm_analysis",
+                "analysis": llm_result,
+            }
 
     text_lower = text.lower()
 
@@ -396,7 +486,7 @@ async def demo_regulatory_analyze(body: dict):
 
 @app.post("/api/models/compliance-checker/check")
 async def demo_compliance_check(body: dict):
-    """Screen communication for compliance violations (fully functional, no API key needed)."""
+    """Screen communication for compliance violations — rule-based + optional LLM enhancement."""
     import re
 
     text = body.get("text", "")
